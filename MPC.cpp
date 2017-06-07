@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 40;
+double ref_v = 20;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -52,7 +52,7 @@ class FG_eval {
 		for (int i = 0; i < N; i++) {
 			fg[0] += CppAD::pow(vars[cte_start + i] - ref_cte, 2);
 			fg[0] += CppAD::pow(vars[epsi_start + i] - ref_epsi, 2);
-			fg[0] += CppAD::pow(vars[v_start + i] - ref_v, 2);
+			fg[0] += 2*CppAD::pow(vars[v_start + i] - ref_v, 2);
 		}
 
 		// Minimize the use of actuators.
@@ -63,8 +63,8 @@ class FG_eval {
 
 		// Minimize the value gap between sequential actuations.
 		for (int i = 0; i < N - 2; i++) {
-			fg[0] +=  100*CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-			fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+			fg[0] +=  CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+			fg[0] += 5*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
         }
 
         fg[1 + x_start] = vars[x_start];
@@ -118,7 +118,7 @@ class FG_eval {
 MPC::MPC() {}
 MPC::~MPC() {}
 
-vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs,vector<double>& mpc_x, vector<double>& mpc_y) {
   bool ok = true;
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -247,10 +247,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
 	auto cost = solution.obj_value;
 	std::cout << "Cost " << cost << std::endl;
-	//for (int i = 0; i < N; i++){
-	//	mpc_x.push_back(solution.x[x_start + i]);
-	//	mpc_y.push_back(solution.x[y_start + i]);
-	//}
+	for (int i = 0; i < N; i++){
+		mpc_x.push_back(solution.x[x_start + i]);
+		mpc_y.push_back(solution.x[y_start + i]);
+	}
 
 	if(!ok){
 		std::cout << "Fatal error: failed to find optimal parameters!!!" << std::endl;
